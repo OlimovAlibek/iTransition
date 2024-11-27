@@ -8,6 +8,7 @@ class DiceParser {
                 "Error: At least 3 dice configurations are required. Example usage:\nnode game.js 2,2,4,4,9,9 6,8,1,1,8,6 7,5,3,7,5,3"
             );
         }
+        
         return args.map(arg => {
             const dice = arg.split(",").map(Number);
             if (dice.length !== 6 || dice.some(isNaN)) {
