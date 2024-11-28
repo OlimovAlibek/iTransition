@@ -8,18 +8,25 @@ class DiceParser {
                 "Error: At least 3 dice configurations are required. Example usage:\nnode game.js 2,2,4,4,9,9 6,8,1,1,8,6 7,5,3,7,5,3"
             );
         }
-        
         return args.map(arg => {
-            const dice = arg.split(",").map(Number);
-            if (dice.length !== 6 || dice.some(isNaN)) {
+            const dice = arg.split(",").map(value => {
+                if (!/^\d+$/.test(value)) {
+                    throw new Error(
+                        `Error: Dice configuration must only contain integers. Invalid input: ${arg}`
+                    );
+                }
+                return Number(value);
+            });
+            if (dice.length !== 6) {
                 throw new Error(
-                    `Error: Each dice must have 6 integers. Invalid input: ${arg}`
+                    `Error: Each dice must have exactly 6 integers. Invalid input: ${arg}`
                 );
             }
             return dice;
         });
     }
 }
+
 
 class FairRandomGenerator {
     static generateRandom(range) {
@@ -33,10 +40,40 @@ class FairRandomGenerator {
     }
 }
 
+class ProbabilityCalculator {
+    static calculateProbabilities(dice) {
+        const probabilities = Array.from({ length: dice.length }, () =>
+            Array(dice.length).fill(0)
+        );
+
+        for (let i = 0; i < dice.length; i++) {
+            for (let j = 0; j < dice.length; j++) {
+                if (i === j) continue;
+
+                let wins = 0;
+                let total = dice[i].length * dice[j].length;
+
+                for (let rollA of dice[i]) {
+                    for (let rollB of dice[j]) {
+                        if (rollA > rollB) {
+                            wins++;
+                        }
+                    }
+                }
+
+                probabilities[i][j] = wins / total;
+            }
+        }
+
+        return probabilities;
+    }
+}
+
+
 class TableGenerator {
     static generateTable(dice, probabilities) {
-        console.log("Dice Probabilities (Row vs Column):");
-        console.log("   " + dice.map((_, i) => `D${i}`).join("  "));
+        console.log("\nDice Probabilities (Row vs Column):");
+        console.log("   " + dice.map((_, i) => `D${i}`).join("    "));
         probabilities.forEach((row, i) => {
             console.log(
                 `D${i} ` +
@@ -45,8 +82,10 @@ class TableGenerator {
                         .join("  ")
             );
         });
+        console.log(""); 
     }
 }
+
 
 class Player {
     constructor(name) {
@@ -132,6 +171,9 @@ class GameEngine {
     }
 
     playGame() {
+        const probabilities = ProbabilityCalculator.calculateProbabilities(this.dice);
+        TableGenerator.generateTable(this.dice, probabilities);
+
         const userFirst = this.determineFirstMove();
         let userDie, computerDie;
 
@@ -169,7 +211,6 @@ class GameEngine {
     }
 }
 
-// Main Execution
 try {
     const args = process.argv.slice(2);
     const dice = DiceParser.parseDice(args);
@@ -180,4 +221,3 @@ try {
 } catch (error) {
     console.error(error.message);
 }
-
